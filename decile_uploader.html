@@ -148,7 +148,7 @@
 
 <script>
   // Google OAuth settings
-  const CLIENT_ID = ''; // будет заполнен пользователем
+  const CLIENT_ID = '1021263067576-g0r632sd80go08o9tmfstruhsje1tv5t.apps.googleusercontent.com'; // будет заполнен пользователем
   const SHEET_ID = '1ccOjXAxGPsGYeEIwAt4plIm1t1hni0C_zTuoz-TbH7U';
   const SHEET_NAME = 'Sheet1';
   const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
@@ -190,7 +190,7 @@
     document.head.appendChild(script);
   }
 
-  function getClientId() {
+  function getClientId() { return CLIENT_ID; // PATCHED
     // Prompt user for client ID if not set
     if (!window._gclientId) {
       window._gclientId = prompt(
