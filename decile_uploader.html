@@ -86,21 +86,19 @@
   const SHEET_ID  = '111-m46kwwm49Zfwtc03DCoDJ54GlPC43c1EzXH4D9Jc';
   const SHEET_NAME = 'Sheet1';
 
+  // Column offsets relative to column B (0 = B, 1 = C, …)
+  // Maps offset → function that extracts the value from a parsed CSV row
+  const DATA_COLS = {
+    0: r => r.name,       // B: LP Name
+    3: r => r.email,      // E: LP Email
+    4: r => r.committed,  // F: Committed
+    5: r => r.committed,  // G: Committed
+  };
+
   let accessToken = null;
   let parsedRows  = [];
 
   window.onload = function() {
-    google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/spreadsheets',
-      callback: (resp) => {
-        if (resp.error) { showError('Ошибка авторизации: ' + resp.error); return; }
-        accessToken = resp.access_token;
-        document.getElementById('auth-status').innerHTML =
-          '<div class="auth-ok">✓ Google подключён — mykyta@geek.vc</div>';
-        document.getElementById('signin-btn').style.display = 'none';
-      }
-    });
     document.getElementById('g_id_signin').innerHTML =
       '<button class="btn" id="signin-btn" onclick="doAuth()">ВОЙТИ ЧЕРЕЗ GOOGLE →</button>';
   };
@@ -167,31 +165,74 @@
 
   async function pushToSheets() {
     if (!accessToken) { showError('Сначала войди через Google'); return; }
-    const btn=document.getElementById('btn-push');
-    const st=document.getElementById('status');
-    btn.disabled=true;
-    st.innerHTML='<span class="spinner"></span>Очищаем лист...';
+    const btn = document.getElementById('btn-push');
+    const st  = document.getElementById('status');
+    btn.disabled = true;
+
     try {
-      const clearRes=await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!B2:G200:clear`,
-        {method:'POST',headers:{Authorization:`Bearer ${accessToken}`}});
-      if (!clearRes.ok) throw new Error('Ошибка очистки: '+clearRes.status);
-      st.innerHTML='<span class="spinner"></span>Вставляем данные...';
-      const values=parsedRows.map(r=>[r.name,'','',r.email,r.committed,r.committed]);
-      const upRes=await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!B2:G${1+values.length}?valueInputOption=USER_ENTERED`,
-        {method:'PUT',headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},
-         body:JSON.stringify({values})});
-      if (!upRes.ok) { const e=await upRes.json(); throw new Error(e.error?.message||'Ошибка вставки'); }
-      st.innerHTML='';
-      document.getElementById('msg-block').innerHTML=
+      // Read the existing sheet with formula rendering so we can detect formula cells
+      st.innerHTML = '<span class="spinner"></span>Читаем лист...';
+      const readRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!B2:G200?valueRenderOption=FORMULA`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!readRes.ok) throw new Error('Ошибка чтения листа: ' + readRes.status);
+      const readData = await readRes.json();
+      const existingRows = readData.values || [];
+
+      // Build batchUpdate payload, skipping any cell that currently holds a formula.
+      // Rows beyond parsedRows.length get empty strings to clear old data values.
+      st.innerHTML = '<span class="spinner"></span>Вставляем данные...';
+      const maxRows = Math.max(parsedRows.length, existingRows.length);
+      const batchData = [];
+
+      for (let i = 0; i < maxRows; i++) {
+        const existingRow = existingRows[i] || [];
+        const csvRow = i < parsedRows.length ? parsedRows[i] : null;
+
+        for (const [colOffsetStr, valueFn] of Object.entries(DATA_COLS)) {
+          const col = parseInt(colOffsetStr);
+          const existingCell = existingRow[col];
+          // Never overwrite a formula cell
+          if (typeof existingCell === 'string' && existingCell.startsWith('=')) continue;
+
+          const colLetter = String.fromCharCode(66 + col); // 66 = 'B'
+          const rowNum = i + 2; // sheet data starts at row 2
+          batchData.push({
+            range: `${SHEET_NAME}!${colLetter}${rowNum}`,
+            values: [[csvRow ? valueFn(csvRow) : '']]
+          });
+        }
+      }
+
+      if (batchData.length > 0) {
+        const batchRes = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchUpdate`,
+          {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data: batchData })
+          }
+        );
+        if (!batchRes.ok) {
+          const e = await batchRes.json();
+          throw new Error(e.error?.message || 'Ошибка вставки');
+        }
+      }
+
+      st.innerHTML = '';
+      document.getElementById('msg-block').innerHTML =
         `<div class="msg msg-success">
           <div style="font-size:24px;margin-bottom:8px;">✓</div>
           <div style="color:#4ade80;font-size:14px;font-weight:500">${parsedRows.length} LP успешно вставлено!</div>
           <div style="color:#444;font-size:12px;margin-top:4px;">Открой Google Sheets и проверь</div>
           <button onclick="location.reload()" style="margin-top:16px;background:transparent;border:1px solid #2a2a2a;color:#555;border-radius:6px;padding:8px 20px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer">Загрузить другой файл</button>
         </div>`;
-    } catch(err) { btn.disabled=false; st.innerHTML=''; showError(err.message); }
+    } catch(err) {
+      btn.disabled = false;
+      st.innerHTML = '';
+      showError(err.message);
+    }
   }
 
   function parseCSV(text) {
