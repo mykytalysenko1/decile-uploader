@@ -1,261 +1,487 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Decile → Google Sheets</title>
+<title>SPV Builder · Geek Ventures</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { min-height:100vh; background:#0a0a0f; font-family:'DM Mono',monospace; color:#e8e8e8; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px; }
-  h1 { font-family:'Syne',sans-serif; font-size:34px; font-weight:800; letter-spacing:-1px; }
-  .label { font-size:10px; letter-spacing:3px; text-transform:uppercase; color:#444; margin-bottom:8px; }
-  .card { width:100%; max-width:580px; }
-  .drop-zone { border:1px dashed #2a2a2a; border-radius:8px; padding:36px 24px; text-align:center; cursor:pointer; transition:all 0.2s; background:rgba(255,255,255,0.01); margin-bottom:20px; }
-  .drop-zone.over,.drop-zone:hover,.drop-zone.loaded { border-color:#4ade80; background:rgba(74,222,128,0.04); }
-  input[type=file] { display:none; }
-  .btn { width:100%; padding:14px; background:#4ade80; color:#0a0f0a; border:none; border-radius:8px; font-size:13px; font-weight:600; font-family:'DM Mono',monospace; letter-spacing:1px; cursor:pointer; transition:all 0.15s; margin-top:8px; }
-  .btn:hover { transform:translateY(-1px); background:#6ee7a0; }
-  .btn:disabled { background:#1a1a1a; color:#333; cursor:not-allowed; transform:none; }
-  .preview-table { border:1px solid #1a1a1a; border-radius:8px; overflow:hidden; margin-bottom:20px; }
-  .preview-header { display:grid; grid-template-columns:1fr 1fr auto; background:#111; padding:8px 16px; font-size:10px; color:#444; letter-spacing:1px; text-transform:uppercase; }
-  .preview-row { display:grid; grid-template-columns:1fr 1fr auto; padding:10px 16px; font-size:12px; border-top:1px solid #111; }
-  .ellipsis { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:8px; }
-  .msg { border-radius:8px; padding:20px; text-align:center; margin-top:16px; }
-  .msg-success { background:rgba(74,222,128,0.08); border:1px solid rgba(74,222,128,0.2); }
-  .msg-error { background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); color:#ef4444; font-size:13px; }
-  .step-block { margin-bottom:20px; }
-  .separator { height:1px; background:#1a1a1a; margin:24px 0; }
-  .header { text-align:center; margin-bottom:40px; }
-  .tag { font-size:11px; letter-spacing:4px; color:#4ade80; margin-bottom:12px; text-transform:uppercase; }
-  .sub { color:#444; font-size:13px; margin-top:8px; }
-  .spinner { display:inline-block; width:14px; height:14px; border:2px solid #333; border-top-color:#4ade80; border-radius:50%; animation:spin 0.8s linear infinite; vertical-align:middle; margin-right:8px; }
-  @keyframes spin { to { transform:rotate(360deg); } }
-  #status { margin-top:12px; font-size:12px; color:#555; min-height:18px; }
-  .auth-ok { background:rgba(74,222,128,0.1); border:1px solid rgba(74,222,128,0.2); border-radius:8px; padding:12px 16px; font-size:12px; color:#4ade80; margin-bottom:8px; }
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:#0a0a0f;font-family:'DM Mono',monospace;color:#e8e8e8;display:flex;flex-direction:column;align-items:center;padding:48px 20px 80px}
+a{color:#4ade80}
+h1{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;letter-spacing:-1px}
+.card{width:100%;max-width:620px}
+.tag{font-size:11px;letter-spacing:4px;color:#4ade80;text-transform:uppercase;margin-bottom:10px}
+.sub{color:#444;font-size:13px;margin-top:6px}
+.header{text-align:center;margin-bottom:44px}
+.sep{height:1px;background:#1a1a1a;margin:24px 0}
+.step-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#444;margin-bottom:12px}
+.step-label-btn{cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+.step-label-btn:hover{color:#888}
+/* Buttons */
+.btn{width:100%;padding:13px;background:#4ade80;color:#0a0f0a;border:none;border-radius:8px;font-size:13px;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:1px;cursor:pointer;transition:all .15s;margin-top:8px}
+.btn:hover{transform:translateY(-1px);background:#6ee7a0}
+.btn:disabled{background:#1a1a1a;color:#333;cursor:not-allowed;transform:none}
+.btn-outline{background:transparent;border:1px solid #2a2a2a;color:#888;margin-top:8px}
+.btn-outline:hover{background:#111;color:#aaa;transform:none}
+/* Auth */
+.auth-ok{background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.2);border-radius:8px;padding:11px 16px;font-size:12px;color:#4ade80;margin-bottom:6px}
+/* Config */
+#cfg-panel{padding:16px;background:#0d0d12;border:1px solid #1a1a1a;border-radius:8px;margin-top:12px}
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+.field-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#555;display:block;margin-bottom:6px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.input{width:100%;background:#0a0a0f;border:1px solid #1e1e1e;border-radius:6px;padding:10px 12px;color:#ccc;font-size:12px;font-family:'DM Mono',monospace;outline:none;transition:border-color .15s}
+.input:focus{border-color:#2a2a2a;color:#e8e8e8}
+.input::placeholder{color:#2a2a2a}
+.hint{font-size:10px;color:#333;margin-top:4px}
+.cfg-saved{font-size:11px;color:#4ade80;margin-left:10px;display:none;vertical-align:middle}
+.contacts-badge{font-size:10px;letter-spacing:1px;color:#555;margin-top:6px}
+/* Drop zone */
+.drop-zone{border:1px dashed #222;border-radius:8px;padding:32px 24px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.01);margin-bottom:4px}
+.drop-zone.over,.drop-zone:hover{border-color:#4ade80;background:rgba(74,222,128,.03)}
+.drop-zone.loaded{border-color:#4ade80;background:rgba(74,222,128,.04)}
+input[type=file]{display:none}
+/* Preview table */
+.ptable{border:1px solid #141414;border-radius:8px;overflow:hidden;margin-bottom:16px}
+.phead{display:grid;grid-template-columns:1fr 1fr 90px 56px;background:#0e0e0e;padding:8px 14px;font-size:9px;color:#3a3a3a;letter-spacing:1px;text-transform:uppercase;gap:8px}
+.prow{display:grid;grid-template-columns:1fr 1fr 90px 56px;padding:9px 14px;font-size:12px;border-top:1px solid #0e0e0e;gap:8px;align-items:center}
+.prow:hover{background:#0d0d0d}
+.ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge-known{font-size:9px;letter-spacing:.5px;color:#4ade80;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.2);border-radius:4px;padding:2px 6px;white-space:nowrap}
+.badge-new{font-size:9px;letter-spacing:.5px;color:#555;border:1px solid #1e1e1e;border-radius:4px;padding:2px 6px;white-space:nowrap}
+/* Messages */
+.msg{border-radius:8px;padding:22px 20px;text-align:center;margin-top:16px}
+.msg-success{background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.18)}
+.msg-error{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.18);color:#ef4444;font-size:12px}
+/* Status line */
+.status-line{margin-top:12px;font-size:12px;color:#555;min-height:18px}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid #222;border-top-color:#4ade80;border-radius:50%;animation:spin .75s linear infinite;vertical-align:middle;margin-right:7px}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* SPV name */
+.spv-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:4px}
+.spv-row .input{flex:1}
+.spv-row .btn{width:auto;padding:12px 20px;flex-shrink:0;margin-top:0;white-space:nowrap}
 </style>
 </head>
 <body>
 <div class="card">
+
+  <!-- Header -->
   <div class="header">
     <div class="tag">Geek Ventures</div>
-    <h1>Decile → Sheets</h1>
-    <p class="sub">Загрузи CSV — данные уйдут в Google Sheets</p>
+    <h1>SPV Builder</h1>
+    <p class="sub">Decile CSV → new Google Sheet · formulas preserved</p>
   </div>
 
-  <div class="step-block">
-    <div class="label">01 — Подключи Google аккаунт</div>
-    <div id="g_id_signin"></div>
-    <div id="auth-status"></div>
+  <!-- 01: Auth -->
+  <div class="step-label">01 — Google account</div>
+  <div id="auth-wrap">
+    <button class="btn" id="btn-auth" onclick="doAuth()">SIGN IN WITH GOOGLE →</button>
   </div>
+  <div id="auth-status"></div>
 
-  <div class="separator"></div>
+  <div class="sep"></div>
 
-  <div class="step-block">
-    <div class="label">02 — CSV файл из Decile</div>
-    <label for="csv-input">
-      <div class="drop-zone" id="drop-zone"
-        ondragover="event.preventDefault();this.classList.add('over')"
-        ondragleave="this.classList.remove('over')"
-        ondrop="handleDrop(event)">
-        <div id="drop-text">
-          <div style="font-size:28px;opacity:0.2;margin-bottom:8px;">⬆</div>
-          <div style="font-size:13px;color:#555;">Перетащи CSV или кликни</div>
-          <div style="font-size:11px;color:#333;margin-top:4px;">Capital Call Export из Decile Hub</div>
-        </div>
+  <!-- 02: Config -->
+  <div class="step-label step-label-btn" onclick="toggleCfg()">
+    <span>02 — Configuration</span><span id="cfg-icon">▼</span>
+  </div>
+  <div id="cfg-panel">
+    <div class="field">
+      <label class="field-label">Template Spreadsheet ID <span style="color:#333">(required)</span></label>
+      <input class="input" id="cfg-tmpl" placeholder="Paste spreadsheet ID from the URL" />
+      <div class="hint">The master SPV sheet to copy for each new deal — all formulas come from here</div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label">Contacts DB Sheet ID <span style="color:#333">(optional)</span></label>
+        <input class="input" id="cfg-contacts" placeholder="Spreadsheet ID" />
+        <div class="hint">Previous SPV / investor contacts for LP matching</div>
       </div>
-    </label>
-    <input type="file" id="csv-input" accept=".csv" onchange="handleFile(this.files[0])">
+      <div class="field">
+        <label class="field-label">Contacts Range</label>
+        <input class="input" id="cfg-range" placeholder="Sheet1!A2:D" />
+        <div class="hint">Col A = LP Name · Col B = Email</div>
+      </div>
+    </div>
+    <div class="field-row" style="margin-top:4px">
+      <div class="field">
+        <label class="field-label">Data start row</label>
+        <input class="input" id="cfg-startrow" type="number" min="1" placeholder="2" />
+        <div class="hint">Row where LP data begins (usually 2)</div>
+      </div>
+      <div class="field">
+        <label class="field-label">Data sheet tab name</label>
+        <input class="input" id="cfg-tabname" placeholder="auto-detect" />
+        <div class="hint">Leave blank to use first sheet tab</div>
+      </div>
+    </div>
+    <div style="margin-top:16px;display:flex;align-items:center">
+      <button class="btn btn-outline" style="width:auto;padding:10px 20px" onclick="saveCfg()">SAVE CONFIG</button>
+      <span class="cfg-saved" id="cfg-saved">✓ Saved</span>
+    </div>
   </div>
+  <div class="contacts-badge" id="contacts-badge"></div>
 
+  <div class="sep"></div>
+
+  <!-- 03: CSV upload -->
+  <div class="step-label">03 — Decile CSV export</div>
+  <label for="csv-input">
+    <div class="drop-zone" id="drop-zone"
+      ondragover="event.preventDefault();this.classList.add('over')"
+      ondragleave="this.classList.remove('over')"
+      ondrop="handleDrop(event)">
+      <div id="drop-text">
+        <div style="font-size:26px;opacity:.15;margin-bottom:8px">⬆</div>
+        <div style="font-size:13px;color:#444">Drag CSV here or click to browse</div>
+        <div style="font-size:11px;color:#2a2a2a;margin-top:4px">Capital Call export from Decile Hub</div>
+      </div>
+    </div>
+  </label>
+  <input type="file" id="csv-input" accept=".csv" onchange="handleFile(this.files[0])">
+
+  <!-- 04: Preview + Create (shown after CSV load) -->
   <div id="preview-block" style="display:none">
-    <div class="label" id="preview-label">03 — Предпросмотр</div>
-    <div class="preview-table">
-      <div class="preview-header"><span>LP Name</span><span>Email</span><span>Committed</span></div>
+    <div class="sep"></div>
+    <div class="step-label" id="preview-label">04 — Preview</div>
+    <div class="ptable">
+      <div class="phead"><span>LP Name</span><span>Email</span><span>Committed</span><span>Match</span></div>
       <div id="preview-rows"></div>
     </div>
-    <button class="btn" id="btn-push" onclick="pushToSheets()">ВСТАВИТЬ В GOOGLE SHEETS →</button>
-    <div id="status"></div>
+
+    <div class="step-label" style="margin-top:4px">05 — Create SPV sheet</div>
+    <div class="spv-row">
+      <input class="input" id="spv-name" placeholder="e.g. Yope SPV – June 2025" />
+      <button class="btn" id="btn-create" onclick="createSPV()" style="margin-top:0">CREATE →</button>
+    </div>
+    <div class="status-line" id="create-status"></div>
   </div>
 
   <div id="msg-block"></div>
-</div>
+
+</div><!-- /card -->
 
 <script>
-  const CLIENT_ID = '1021263067576-g0r632sd80go08o9tmfstruhsje1tv5t.apps.googleusercontent.com';
-  const SHEET_ID  = '111-m46kwwm49Zfwtc03DCoDJ54GlPC43c1EzXH4D9Jc';
-  const SHEET_NAME = 'Sheet1';
+const CLIENT_ID = '1021263067576-g0r632sd80go08o9tmfstruhsje1tv5t.apps.googleusercontent.com';
+const SCOPES = [
+  'https://www.googleapis.com/auth/spreadsheets',
+  'https://www.googleapis.com/auth/drive'
+].join(' ');
 
-  // Column offsets relative to column B (0 = B, 1 = C, …)
-  // Maps offset → function that extracts the value from a parsed CSV row
-  const DATA_COLS = {
-    0: r => r.name,       // B: LP Name
-    3: r => r.email,      // E: LP Email
-    4: r => r.committed,  // F: Committed
-    5: r => r.committed,  // G: Committed
-  };
+// Column offsets from col B (0=B 1=C 2=D 3=E 4=F 5=G).
+// Adjust if your template uses different columns.
+const WRITE_COLS = {
+  0: r => r.name,       // B: LP Name
+  3: r => r.email,      // E: LP Email
+  4: r => r.committed,  // F: Committed
+  5: r => r.committed,  // G: Committed
+};
 
-  let accessToken = null;
-  let parsedRows  = [];
+let accessToken = null;
+let parsedRows  = [];
+let contactsMap = new Map(); // key: email.toLowerCase() or name.toLowerCase() → entry
 
-  window.onload = function() {
-    document.getElementById('g_id_signin').innerHTML =
-      '<button class="btn" id="signin-btn" onclick="doAuth()">ВОЙТИ ЧЕРЕЗ GOOGLE →</button>';
-  };
+/* ── Config ── */
+let cfg = { templateId:'', contactsId:'', contactsRange:'Sheet1!A2:D', startRow:2, tabName:'' };
 
-  function doAuth() {
-    google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/spreadsheets',
-      callback: (resp) => {
-        if (resp.error) { showError('Ошибка: ' + resp.error); return; }
-        accessToken = resp.access_token;
-        document.getElementById('auth-status').innerHTML =
-          '<div class="auth-ok">✓ Google подключён</div>';
-        document.getElementById('signin-btn').style.display = 'none';
-      }
-    }).requestAccessToken();
+function loadCfg() {
+  const s = JSON.parse(localStorage.getItem('gv_spv3') || '{}');
+  Object.assign(cfg, s);
+  document.getElementById('cfg-tmpl').value       = cfg.templateId   || '';
+  document.getElementById('cfg-contacts').value   = cfg.contactsId   || '';
+  document.getElementById('cfg-range').value      = cfg.contactsRange || 'Sheet1!A2:D';
+  document.getElementById('cfg-startrow').value   = cfg.startRow     || 2;
+  document.getElementById('cfg-tabname').value    = cfg.tabName      || '';
+  if (cfg.templateId) toggleCfg(false);
+}
+
+function saveCfg() {
+  cfg.templateId    = document.getElementById('cfg-tmpl').value.trim();
+  cfg.contactsId    = document.getElementById('cfg-contacts').value.trim();
+  cfg.contactsRange = document.getElementById('cfg-range').value.trim() || 'Sheet1!A2:D';
+  cfg.startRow      = parseInt(document.getElementById('cfg-startrow').value) || 2;
+  cfg.tabName       = document.getElementById('cfg-tabname').value.trim();
+  localStorage.setItem('gv_spv3', JSON.stringify(cfg));
+  const badge = document.getElementById('cfg-saved');
+  badge.style.display = 'inline';
+  setTimeout(() => badge.style.display = 'none', 2200);
+}
+
+function toggleCfg(forceOpen) {
+  const panel = document.getElementById('cfg-panel');
+  const icon  = document.getElementById('cfg-icon');
+  const open  = forceOpen !== undefined ? forceOpen : (panel.style.display === 'none');
+  panel.style.display = open ? 'block' : 'none';
+  icon.textContent    = open ? '▲' : '▼';
+}
+
+/* ── Auth ── */
+window.onload = loadCfg;
+
+function doAuth() {
+  google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { showError('Auth error: ' + resp.error); return; }
+      accessToken = resp.access_token;
+      document.getElementById('auth-status').innerHTML =
+        '<div class="auth-ok">✓ Google connected</div>';
+      document.getElementById('btn-auth').style.display = 'none';
+      if (cfg.contactsId) await loadContacts();
+    }
+  }).requestAccessToken();
+}
+
+/* ── Contacts DB ── */
+async function loadContacts() {
+  const badge = document.getElementById('contacts-badge');
+  badge.textContent = 'Loading contacts…';
+  try {
+    const range = encodeURIComponent(cfg.contactsRange || 'Sheet1!A2:D');
+    const res = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${cfg.contactsId}/values/${range}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (!res.ok) { badge.textContent = '⚠ Could not load contacts (' + res.status + ')'; return; }
+    const data = await res.json();
+    contactsMap.clear();
+    let count = 0;
+    for (const row of (data.values || [])) {
+      const name  = (row[0] || '').trim();
+      const email = (row[1] || '').trim().toLowerCase();
+      const entry = { name, email, extra: row.slice(2) };
+      if (email) { contactsMap.set(email, entry); count++; }
+      if (name)  contactsMap.set(name.toLowerCase(), entry);
+    }
+    badge.textContent = `✓ ${count} contacts loaded from database`;
+    badge.style.color = '#3a3a3a';
+    // Refresh preview badges if CSV already loaded
+    if (parsedRows.length) buildPreviewRows();
+  } catch(e) {
+    badge.textContent = '⚠ Contacts load error: ' + e.message;
   }
+}
 
-  function handleDrop(e) {
-    e.preventDefault();
-    document.getElementById('drop-zone').classList.remove('over');
-    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-  }
+/* ── CSV ── */
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('over');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+}
 
-  function handleFile(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const rows = parseCSV(e.target.result);
-        if (rows.length < 2) { showError('CSV пустой'); return; }
-        const h = rows[0];
-        const ni = h.indexOf('LP Name'), ei = h.indexOf('LP Email'), ci = h.indexOf('Commitment');
-        if (ni<0||ei<0||ci<0) { showError('Не найдены колонки LP Name / LP Email / Commitment'); return; }
-        parsedRows = [];
-        for (let i=1;i<rows.length;i++) {
-          const r=rows[i], name=(r[ni]||'').trim(), email=(r[ei]||'').trim();
-          const num=parseFloat((r[ci]||'').replace(/[$,]/g,''));
-          const committed=isNaN(num)?'':'$'+num.toLocaleString('en-US');
-          if (name) parsedRows.push({name,email,committed});
-        }
-        showPreview(file.name);
-      } catch(err) { showError('Ошибка: '+err.message); }
-    };
-    reader.readAsText(file,'UTF-8');
-  }
-
-  function showPreview(filename) {
-    const dz=document.getElementById('drop-zone');
-    dz.classList.add('loaded');
-    document.getElementById('drop-text').innerHTML=
-      `<div style="color:#4ade80;font-size:13px;">✓ ${filename}</div>
-       <div style="color:#444;font-size:11px;margin-top:4px;">${parsedRows.length} LP найдено</div>`;
-    document.getElementById('preview-label').textContent=`03 — Предпросмотр (${parsedRows.length} LP)`;
-    document.getElementById('preview-rows').innerHTML=
-      parsedRows.slice(0,6).map(r=>
-        `<div class="preview-row">
-          <span class="ellipsis">${r.name}</span>
-          <span class="ellipsis" style="color:#666">${r.email}</span>
-          <span style="color:#4ade80;white-space:nowrap">${r.committed}</span>
-        </div>`).join('')+
-      (parsedRows.length>6?`<div style="padding:8px 16px;font-size:11px;color:#333;border-top:1px solid #111;text-align:center">+ ещё ${parsedRows.length-6} LP</div>`:'');
-    document.getElementById('preview-block').style.display='block';
-  }
-
-  async function pushToSheets() {
-    if (!accessToken) { showError('Сначала войди через Google'); return; }
-    const btn = document.getElementById('btn-push');
-    const st  = document.getElementById('status');
-    btn.disabled = true;
-
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
     try {
-      // Read the existing sheet with formula rendering so we can detect formula cells
-      st.innerHTML = '<span class="spinner"></span>Читаем лист...';
-      const readRes = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!B2:G200?valueRenderOption=FORMULA`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+      const rows = parseCSV(ev.target.result);
+      if (rows.length < 2) { showError('CSV is empty'); return; }
+      const h  = rows[0].map(x => x.trim());
+      const ni = h.indexOf('LP Name'), ei = h.indexOf('LP Email'), ci = h.indexOf('Commitment');
+      if (ni < 0 || ei < 0 || ci < 0) {
+        showError('Missing required columns: LP Name · LP Email · Commitment');
+        return;
+      }
+      parsedRows = [];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        const name  = (r[ni] || '').trim();
+        const email = (r[ei] || '').trim();
+        const num   = parseFloat((r[ci] || '').replace(/[$,]/g, ''));
+        const committed = isNaN(num) ? '' : '$' + num.toLocaleString('en-US');
+        if (name) parsedRows.push({ name, email, committed });
+      }
+      showPreview(file.name);
+    } catch(err) { showError('Parse error: ' + err.message); }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function showPreview(filename) {
+  const dz = document.getElementById('drop-zone');
+  dz.classList.add('loaded');
+  document.getElementById('drop-text').innerHTML =
+    `<div style="color:#4ade80;font-size:13px">✓ ${esc(filename)}</div>
+     <div style="color:#444;font-size:11px;margin-top:4px">${parsedRows.length} LPs found</div>`;
+  buildPreviewRows();
+  document.getElementById('preview-block').style.display = 'block';
+}
+
+function buildPreviewRows() {
+  const known = parsedRows.filter(r => isKnown(r)).length;
+  document.getElementById('preview-label').textContent =
+    `04 — Preview  (${parsedRows.length} LPs · ${known} known contacts)`;
+
+  const slice = parsedRows.slice(0, 10);
+  const html = slice.map(r => {
+    const k = isKnown(r);
+    return `<div class="prow">
+      <span class="ell">${esc(r.name)}</span>
+      <span class="ell" style="color:#555">${esc(r.email)}</span>
+      <span style="color:#4ade80;text-align:right">${esc(r.committed)}</span>
+      <span>${k ? '<span class="badge-known">KNOWN</span>' : '<span class="badge-new">NEW</span>'}</span>
+    </div>`;
+  }).join('');
+  const more = parsedRows.length > 10
+    ? `<div style="padding:8px 14px;font-size:10px;color:#2a2a2a;border-top:1px solid #0e0e0e;text-align:center">
+         + ${parsedRows.length - 10} more LPs
+       </div>`
+    : '';
+  document.getElementById('preview-rows').innerHTML = html + more;
+}
+
+function isKnown(r) {
+  return (r.email && contactsMap.has(r.email.toLowerCase()))
+      || contactsMap.has(r.name.toLowerCase());
+}
+
+/* ── Create SPV Sheet ── */
+async function createSPV() {
+  if (!accessToken)      { showError('Sign in with Google first');              return; }
+  if (!cfg.templateId)   { showError('Set the Template Spreadsheet ID in Config'); return; }
+  if (!parsedRows.length){ showError('Upload a Decile CSV first');              return; }
+  const spvName = document.getElementById('spv-name').value.trim();
+  if (!spvName) { showError('Enter a name for the new SPV sheet'); return; }
+
+  const btn = document.getElementById('btn-create');
+  const st  = document.getElementById('create-status');
+  btn.disabled = true;
+  document.getElementById('msg-block').innerHTML = '';
+
+  try {
+    /* 1 ── Copy template via Drive API */
+    st.innerHTML = spin('Copying template…');
+    const copyRes = await apiFetch(
+      `https://www.googleapis.com/drive/v3/files/${cfg.templateId}/copy`,
+      { method:'POST', body: JSON.stringify({ name: spvName }) }
+    );
+    const newId  = copyRes.id;
+    const newUrl = `https://docs.google.com/spreadsheets/d/${newId}`;
+
+    /* 2 ── Resolve sheet tab name */
+    st.innerHTML = spin('Reading sheet structure…');
+    const meta      = await apiFetch(`https://sheets.googleapis.com/v4/spreadsheets/${newId}`);
+    const sheetName = cfg.tabName || meta.sheets[0].properties.title;
+    const startRow  = cfg.startRow || 2;
+    const endRow    = startRow + Math.max(parsedRows.length, 200) - 1;
+    const dataRange = `${sheetName}!B${startRow}:G${endRow}`;
+
+    /* 3 ── Read the copied sheet with FORMULA rendering → detect formula cells */
+    st.innerHTML = spin('Detecting formula cells…');
+    const existing = await apiFetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${newId}/values/${encodeURIComponent(dataRange)}?valueRenderOption=FORMULA`
+    );
+    const existingRows = existing.values || [];
+
+    /* 4 ── Build batch payload – skip any cell that already holds a formula */
+    st.innerHTML = spin(`Writing ${parsedRows.length} LPs…`);
+    const maxRows  = Math.max(parsedRows.length, existingRows.length);
+    const batchData = [];
+
+    for (let i = 0; i < maxRows; i++) {
+      const existingRow = existingRows[i] || [];
+      const csvRow      = i < parsedRows.length ? parsedRows[i] : null;
+
+      for (const [offStr, valueFn] of Object.entries(WRITE_COLS)) {
+        const col  = parseInt(offStr);
+        const cell = existingRow[col];
+        if (typeof cell === 'string' && cell.startsWith('=')) continue; // formula — leave it
+
+        batchData.push({
+          range: `${sheetName}!${colLetter(col)}${startRow + i}`,
+          values: [[csvRow ? valueFn(csvRow) : '']]
+        });
+      }
+    }
+
+    if (batchData.length) {
+      await apiFetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${newId}/values:batchUpdate`,
+        { method:'POST', body: JSON.stringify({ valueInputOption:'USER_ENTERED', data: batchData }) }
       );
-      if (!readRes.ok) throw new Error('Ошибка чтения листа: ' + readRes.status);
-      const readData = await readRes.json();
-      const existingRows = readData.values || [];
-
-      // Build batchUpdate payload, skipping any cell that currently holds a formula.
-      // Rows beyond parsedRows.length get empty strings to clear old data values.
-      st.innerHTML = '<span class="spinner"></span>Вставляем данные...';
-      const maxRows = Math.max(parsedRows.length, existingRows.length);
-      const batchData = [];
-
-      for (let i = 0; i < maxRows; i++) {
-        const existingRow = existingRows[i] || [];
-        const csvRow = i < parsedRows.length ? parsedRows[i] : null;
-
-        for (const [colOffsetStr, valueFn] of Object.entries(DATA_COLS)) {
-          const col = parseInt(colOffsetStr);
-          const existingCell = existingRow[col];
-          // Never overwrite a formula cell
-          if (typeof existingCell === 'string' && existingCell.startsWith('=')) continue;
-
-          const colLetter = String.fromCharCode(66 + col); // 66 = 'B'
-          const rowNum = i + 2; // sheet data starts at row 2
-          batchData.push({
-            range: `${SHEET_NAME}!${colLetter}${rowNum}`,
-            values: [[csvRow ? valueFn(csvRow) : '']]
-          });
-        }
-      }
-
-      if (batchData.length > 0) {
-        const batchRes = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchUpdate`,
-          {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data: batchData })
-          }
-        );
-        if (!batchRes.ok) {
-          const e = await batchRes.json();
-          throw new Error(e.error?.message || 'Ошибка вставки');
-        }
-      }
-
-      st.innerHTML = '';
-      document.getElementById('msg-block').innerHTML =
-        `<div class="msg msg-success">
-          <div style="font-size:24px;margin-bottom:8px;">✓</div>
-          <div style="color:#4ade80;font-size:14px;font-weight:500">${parsedRows.length} LP успешно вставлено!</div>
-          <div style="color:#444;font-size:12px;margin-top:4px;">Открой Google Sheets и проверь</div>
-          <button onclick="location.reload()" style="margin-top:16px;background:transparent;border:1px solid #2a2a2a;color:#555;border-radius:6px;padding:8px 20px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer">Загрузить другой файл</button>
-        </div>`;
-    } catch(err) {
-      btn.disabled = false;
-      st.innerHTML = '';
-      showError(err.message);
     }
-  }
 
-  function parseCSV(text) {
-    const rows=[];
-    for (let line of text.split('\n')) {
-      line=line.replace(/\r$/,'');
-      if (!line.trim()) continue;
-      const fields=[]; let cur='',inQ=false;
-      for (const ch of line) {
-        if (ch==='"') inQ=!inQ;
-        else if (ch===','&&!inQ) { fields.push(cur.trim()); cur=''; }
-        else cur+=ch;
-      }
-      fields.push(cur.trim());
-      rows.push(fields);
+    /* 5 ── Done */
+    st.innerHTML = '';
+    document.getElementById('msg-block').innerHTML = `
+      <div class="msg msg-success">
+        <div style="font-size:22px;margin-bottom:10px">✓</div>
+        <div style="color:#4ade80;font-size:14px;font-weight:600;margin-bottom:4px">
+          ${parsedRows.length} LPs written · all formulas preserved
+        </div>
+        <div style="color:#3a3a3a;font-size:11px;margin-bottom:18px">
+          Sheet tab: <span style="color:#555">${esc(sheetName)}</span>
+        </div>
+        <a href="${newUrl}" target="_blank"
+           style="display:inline-block;background:#4ade80;color:#0a0f0a;text-decoration:none;
+                  border-radius:7px;padding:11px 26px;font-size:12px;font-weight:700;letter-spacing:1px">
+          OPEN ${esc(spvName.toUpperCase())} →
+        </a>
+        <br>
+        <button onclick="location.reload()"
+          style="margin-top:14px;background:transparent;border:1px solid #1a1a1a;color:#444;
+                 border-radius:6px;padding:8px 18px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer">
+          Build another SPV
+        </button>
+      </div>`;
+  } catch(err) {
+    btn.disabled = false;
+    st.innerHTML = '';
+    showError(err.message);
+  }
+}
+
+/* ── Helpers ── */
+async function apiFetch(url, opts = {}) {
+  const res = await fetch(url, {
+    ...opts,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      ...(opts.headers || {})
     }
-    return rows;
-  }
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error?.message || `API error ${res.status}`);
+  return json;
+}
 
-  function showError(msg) {
-    document.getElementById('msg-block').innerHTML=
-      `<div class="msg msg-error">⚠ ${msg}</div>`;
+function colLetter(offset) {
+  return String.fromCharCode(66 + offset); // 0→B, 1→C, …
+}
+
+function spin(msg) {
+  return `<span class="spinner"></span>${msg}`;
+}
+
+function parseCSV(text) {
+  const rows = [];
+  for (let line of text.split('\n')) {
+    line = line.replace(/\r$/, '');
+    if (!line.trim()) continue;
+    const fields = []; let cur = '', inQ = false;
+    for (const ch of line) {
+      if (ch === '"') inQ = !inQ;
+      else if (ch === ',' && !inQ) { fields.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    fields.push(cur.trim());
+    rows.push(fields);
   }
+  return rows;
+}
+
+function esc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showError(msg) {
+  document.getElementById('msg-block').innerHTML =
+    `<div class="msg msg-error">⚠ ${esc(msg)}</div>`;
+}
 </script>
 </body>
 </html>
